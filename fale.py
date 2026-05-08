@@ -52,14 +52,8 @@ def main(page: ft.Page):
 
     page.pubsub.subscribe(on_message)
 
-    txt_msg = ft.TextField(
-        hint_text="Mensagem...", 
-        expand=True, 
-        border_radius=20,
-        on_submit=lambda _: enviar(None)
-    )
-
-    def enviar(e):
+    # Função de enviar separada para garantir que funcione no Enter e no Botão
+    def enviar_msg(e):
         if txt_msg.value and sessao["nome"]:
             cursor = db_conn.cursor()
             cursor.execute("INSERT INTO mensagens (autor, texto) VALUES (?, ?)", (sessao["nome"], txt_msg.value))
@@ -68,13 +62,19 @@ def main(page: ft.Page):
             txt_msg.value = ""
             page.update()
 
+    txt_msg = ft.TextField(
+        hint_text="Mensagem...", 
+        expand=True, 
+        border_radius=20,
+        on_submit=enviar_msg
+    )
+
     def abrir_chat():
         page.clean()
         page.add(
             ft.Container(
                 content=ft.Row([
                     ft.Text(f"Chat: {sessao['nome']}", color="white", weight="bold", expand=True),
-                    # Botão de atualizar agora visível (Branco)
                     ft.TextButton(
                         content=ft.Text("Atualizar", color="white"), 
                         on_click=lambda _: carregar_historico()
@@ -86,12 +86,8 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     txt_msg, 
-                    # Corrigido o IconButton para não dar o erro da imagem
-                    ft.IconButton(
-                        icon=ft.icons.SEND, 
-                        icon_color="#008069",
-                        on_click=enviar
-                    )
+                    # Trocado IconButton por ElevatedButton para matar o erro de vez
+                    ft.ElevatedButton("Enviar", on_click=enviar_msg)
                 ]), 
                 padding=10
             )
@@ -116,7 +112,7 @@ def main(page: ft.Page):
             input_nome,
             input_email,
             ft.Container(height=10),
-            ft.FilledButton("Entrar no Chat", on_click=finalizar_cadastro)
+            ft.ElevatedButton("Entrar no Chat", on_click=finalizar_cadastro)
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     )
 
