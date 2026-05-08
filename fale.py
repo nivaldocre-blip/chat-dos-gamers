@@ -18,9 +18,7 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 20
     
-    # Variável de sessão (Saber quem está logado agora)
     sessao = {"nome": "", "email": ""}
-    
     chat = ft.Column(expand=True, scroll=ft.ScrollMode.ALWAYS, spacing=10)
 
     def criar_balao(texto, autor):
@@ -54,7 +52,7 @@ def main(page: ft.Page):
 
     page.pubsub.subscribe(on_message)
 
-    txt_msg = ft.TextField(hint_text="Digite sua mensagem...", expand=True, border_radius=20)
+    txt_msg = ft.TextField(hint_text="Mensagem...", expand=True, border_radius=20)
 
     def enviar(e):
         if txt_msg.value and sessao["nome"]:
@@ -65,67 +63,45 @@ def main(page: ft.Page):
             txt_msg.value = ""
             page.update()
 
-    # --- TELA DE CHAT ---
     def abrir_chat():
         page.clean()
         page.add(
             ft.Container(
                 content=ft.Row([
-                    ft.Text(f"Usuário: {sessao['nome']}", color="white", weight="bold", expand=True),
+                    ft.Text(f"Chat: {sessao['nome']}", color="white", weight="bold", expand=True),
                     ft.IconButton(icon=ft.icons.REFRESH, icon_color="white", on_click=lambda _: carregar_historico())
                 ]),
                 bgcolor="#008069", padding=15, border_radius=10
             ),
             chat,
-            ft.Container(
-                content=ft.Row([
-                    txt_msg, 
-                    ft.IconButton(icon=ft.icons.SEND, on_click=enviar, icon_color="#008069")
-                ]), 
-                padding=10
-            )
+            ft.Container(content=ft.Row([txt_msg, ft.IconButton(icon=ft.icons.SEND, on_click=enviar)]), padding=10)
         )
         carregar_historico()
 
-    # --- TELA DE CADASTRO (Centralizada com Column) ---
-    input_nome = ft.TextField(label="Seu Nome", width=300, border_radius=10)
-    input_email = ft.TextField(label="Seu E-mail", width=300, border_radius=10)
+    input_nome = ft.TextField(label="Nome", width=300)
+    input_email = ft.TextField(label="E-mail", width=300)
 
     def finalizar_cadastro(e):
-        if input_nome.value and input_email.value:
+        if input_nome.value:
             sessao["nome"] = input_nome.value
             sessao["email"] = input_email.value
             abrir_chat()
         else:
-            page.snack_bar = ft.SnackBar(ft.Text("Por favor, preencha nome e e-mail!"))
-            page.snack_bar.open = True
             page.update()
 
-    # Montando a tela de cadastro centralizada de forma segura
+    # TELA DE CADASTRO SEM COMPONENTES QUE DÃO ERRO
     page.add(
-        ft.Row(
-            [
-                ft.Column(
-                    [
-                        ft.Text("🎮 Cadastro Gamers", size=32, weight="bold"),
-                        ft.Text("Preencha para entrar no chat", size=16, color="grey"),
-                        ft.VerticalDivider(height=20, color="transparent"),
-                        input_nome,
-                        input_email,
-                        ft.VerticalDivider(height=10, color="transparent"),
-                        ft.ElevatedButton(
-                            "Entrar no Chat", 
-                            on_click=finalizar_cadastro,
-                            style=ft.ButtonStyle(padding=20)
-                        ),
-                    ],
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                )
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-        )
+        ft.Column([
+            ft.Text("🎮 Cadastro Gamers", size=30, weight="bold"),
+            ft.Container(height=10), # Espaçador seguro
+            input_nome,
+            input_email,
+            ft.Container(height=10), # Espaçador seguro
+            ft.ElevatedButton("Entrar no Chat", on_click=finalizar_cadastro)
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     )
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 8080))
+    # Mudado de app() para run() para evitar o aviso de 'Deprecation' do seu log
     ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=porta, host="0.0.0.0")
