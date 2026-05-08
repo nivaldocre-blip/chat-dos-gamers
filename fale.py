@@ -6,10 +6,8 @@ import sqlite3
 def init_db():
     conn = sqlite3.connect("chat.db", check_same_thread=False)
     cursor = conn.cursor()
-    # Tabela de mensagens
     cursor.execute('''CREATE TABLE IF NOT EXISTS mensagens 
                       (id INTEGER PRIMARY KEY AUTOINCREMENT, autor TEXT, texto TEXT)''')
-    # Tabela de usuários para persistência no servidor
     cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios 
                       (email TEXT PRIMARY KEY, nome TEXT)''')
     conn.commit()
@@ -25,24 +23,19 @@ def main(page: ft.Page):
     sessao = {"nome": "", "email": ""}
     chat = ft.Column(expand=True, scroll=ft.ScrollMode.ALWAYS, spacing=10)
     
+    # Campos de entrada
     input_nome = ft.TextField(label="Nome", width=300)
-    
-    def buscar_usuario(e):
-        """Busca o nome no banco de dados assim que o e-mail é digitado"""
-        if input_email.value:
-            cursor = db_conn.cursor()
-            cursor.execute("SELECT nome FROM usuarios WHERE email = ?", (input_email.value.lower(),))
-            row = cursor.fetchone()
-            if row:
-                input_nome.value = row[0]
-                page.update()
+    input_email = ft.TextField(label="E-mail", width=300)
 
-    input_email = ft.TextField(
-        label="E-mail (Chave de Acesso)", 
-        width=300, 
-        on_blur=buscar_usuario,
-        on_change=buscar_usuario
-    )
+    # --- CARREGAR DADOS SALVOS PARA SEMPRE ---
+    def carregar_dados_salvos():
+        try:
+            n = page.client_storage.get("chat_nome")
+            e = page.client_storage.get("chat_email")
+            if n: input_nome.value = n
+            if e: input_email.value = e
+        except:
+            pass
 
     def criar_balao(texto, autor):
         sou_eu = (autor == sessao["nome"])
@@ -92,7 +85,7 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     ft.Text(f"Chat: {sessao['nome']}", color="white", weight="bold", expand=True),
-                    ft.TextButton(content=ft.Text("Trocar Conta", color="white"), on_click=lambda _: desenhar_cadastro())
+                    ft.TextButton(content=ft.Text("Trocar", color="white"), on_click=lambda _: desenhar_cadastro())
                 ]),
                 bgcolor="#008069", padding=15, border_radius=10
             ),
@@ -106,18 +99,26 @@ def main(page: ft.Page):
             sessao["nome"] = input_nome.value
             sessao["email"] = input_email.value.lower()
             
+            # SALVA NO DISPOSITIVO PARA SEMPRE
+            try:
+                page.client_storage.set("chat_nome", sessao["nome"])
+                page.client_storage.set("chat_email", sessao["email"])
+            except:
+                pass
+            
+            # SALVA NO BANCO TAMBÉM
             cursor = db_conn.cursor()
-            cursor.execute("INSERT OR REPLACE INTO usuarios (email, nome) VALUES (?, ?)", 
-                           (sessao["email"], sessao["nome"]))
+            cursor.execute("INSERT OR REPLACE INTO usuarios (email, nome) VALUES (?, ?)", (sessao["email"], sessao["nome"]))
             db_conn.commit()
+            
             abrir_chat()
 
     def desenhar_cadastro():
         page.clean()
+        carregar_dados_salvos() # Garante que o nome apareça assim que desenhar a tela
         page.add(
             ft.Column([
                 ft.Text("🎮 Cadastro Gamers", size=30, weight="bold"),
-                ft.Text("O nome será lembrado pelo seu e-mail", size=12),
                 ft.Container(height=10),
                 input_email,
                 input_nome,
