@@ -20,6 +20,10 @@ def main(page: ft.Page):
     
     sessao = {"nome": "", "email": ""}
     chat = ft.Column(expand=True, scroll=ft.ScrollMode.ALWAYS, spacing=10)
+    
+    # Campos globais para fácil acesso
+    input_nome = ft.TextField(label="Nome", width=300)
+    input_email = ft.TextField(label="E-mail", width=300)
 
     def criar_balao(texto, autor):
         sou_eu = (autor == sessao["nome"])
@@ -69,7 +73,7 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     ft.Text(f"Chat: {sessao['nome']}", color="white", weight="bold", expand=True),
-                    ft.TextButton(content=ft.Text("Sair", color="white"), on_click=lambda _: fazer_logout())
+                    ft.TextButton(content=ft.Text("Trocar/Editar", color="white"), on_click=lambda _: desenhar_cadastro())
                 ]),
                 bgcolor="#008069", padding=15, border_radius=10
             ),
@@ -78,22 +82,11 @@ def main(page: ft.Page):
         )
         carregar_historico()
 
-    def fazer_logout():
-        try:
-            page.client_storage.clear()
-        except:
-            pass
-        page.clean()
-        desenhar_cadastro()
-
-    input_nome = ft.TextField(label="Nome", width=300)
-    input_email = ft.TextField(label="E-mail", width=300)
-
     def finalizar_cadastro(e):
         if input_nome.value:
             sessao["nome"] = input_nome.value
             sessao["email"] = input_email.value
-            # Tenta salvar no celular
+            # Grava na memória para a próxima vez que abrir o app
             try:
                 page.client_storage.set("chat_nome", input_nome.value)
                 page.client_storage.set("chat_email", input_email.value)
@@ -102,6 +95,18 @@ def main(page: ft.Page):
             abrir_chat()
 
     def desenhar_cadastro():
+        page.clean()
+        # Carrega o que estiver na memória para os campos
+        try:
+            nome_memo = page.client_storage.get("chat_nome")
+            email_memo = page.client_storage.get("chat_email")
+            if nome_memo:
+                input_nome.value = nome_memo
+            if email_memo:
+                input_email.value = email_memo
+        except:
+            pass
+
         page.add(
             ft.Column([
                 ft.Text("🎮 Cadastro Gamers", size=30, weight="bold"),
@@ -113,17 +118,8 @@ def main(page: ft.Page):
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         )
 
-    # --- LÓGICA DE AUTO-LOGIN ---
-    try:
-        nome_salvo = page.client_storage.get("chat_nome")
-        if nome_salvo:
-            sessao["nome"] = nome_salvo
-            sessao["email"] = page.client_storage.get("chat_email")
-            abrir_chat()
-        else:
-            desenhar_cadastro()
-    except:
-        desenhar_cadastro()
+    # SEMPRE inicia pela tela de cadastro (que já vem preenchida se houver dados)
+    desenhar_cadastro()
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 8080))
