@@ -52,7 +52,12 @@ def main(page: ft.Page):
 
     page.pubsub.subscribe(on_message)
 
-    txt_msg = ft.TextField(hint_text="Mensagem...", expand=True, border_radius=20)
+    txt_msg = ft.TextField(
+        hint_text="Mensagem...", 
+        expand=True, 
+        border_radius=20,
+        on_submit=lambda _: enviar(None)
+    )
 
     def enviar(e):
         if txt_msg.value and sessao["nome"]:
@@ -69,13 +74,27 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     ft.Text(f"Chat: {sessao['nome']}", color="white", weight="bold", expand=True),
-                    # Trocado ícone REFRESH por texto para evitar erro de atributo
-                    ft.TextButton("Atualizar", on_click=lambda _: carregar_historico())
+                    # Botão de atualizar agora visível (Branco)
+                    ft.TextButton(
+                        content=ft.Text("Atualizar", color="white"), 
+                        on_click=lambda _: carregar_historico()
+                    )
                 ]),
                 bgcolor="#008069", padding=15, border_radius=10
             ),
             chat,
-            ft.Container(content=ft.Row([txt_msg, ft.IconButton(icon="SEND", on_click=enviar)]), padding=10)
+            ft.Container(
+                content=ft.Row([
+                    txt_msg, 
+                    # Corrigido o IconButton para não dar o erro da imagem
+                    ft.IconButton(
+                        icon=ft.icons.SEND, 
+                        icon_color="#008069",
+                        on_click=enviar
+                    )
+                ]), 
+                padding=10
+            )
         )
         carregar_historico()
 
@@ -97,7 +116,6 @@ def main(page: ft.Page):
             input_nome,
             input_email,
             ft.Container(height=10),
-            # Usando FilledButton para seguir a nova versão do Flet
             ft.FilledButton("Entrar no Chat", on_click=finalizar_cadastro)
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     )
