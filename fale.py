@@ -6,8 +6,12 @@ import sqlite3
 def init_db():
     conn = sqlite3.connect("chat.db", check_same_thread=False)
     cursor = conn.cursor()
+    # Tabela de mensagens
     cursor.execute('''CREATE TABLE IF NOT EXISTS mensagens 
                       (id INTEGER PRIMARY KEY AUTOINCREMENT, autor TEXT, texto TEXT)''')
+    # TABELA DE USUÁRIOS (Para não perder os dados no celular)
+    cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios 
+                      (email TEXT PRIMARY KEY, nome TEXT)''')
     conn.commit()
     return conn
 
@@ -16,14 +20,30 @@ db_conn = init_db()
 def main(page: ft.Page):
     page.title = "Chat Gamers"
     page.theme_mode = ft.ThemeMode.LIGHT
-    # Importante para PWA/Celular manter dados
-    page.browser_context_menu = True 
+    page.padding = 20
     
     sessao = {"nome": "", "email": ""}
     chat = ft.Column(expand=True, scroll=ft.ScrollMode.ALWAYS, spacing=10)
     
+    # Campos de entrada
     input_nome = ft.TextField(label="Nome", width=300)
-    input_email = ft.TextField(label="E-mail", width=300)
+    
+    def buscar_usuario(e):
+        """Busca o nome no banco de dados assim que o e-mail é digitado"""
+        if input_email.value:
+            cursor = db_conn.cursor()
+            cursor.execute("SELECT nome FROM usuarios WHERE email = ?", (input_email.value.lower(),))
+            row = cursor.fetchone()
+            if row:
+                input_nome.value = row[0]
+                page.update()
+
+    input_email = ft.TextField(
+        label="E-mail (Chave de Acesso)", 
+        width=300, 
+        on_blur=buscar_usuario, # Busca quando clica fora do campo
+        on_change=buscar_usuario # Busca enquanto digita
+    )
 
     def criar_balao(texto, autor):
         sou_eu = (autor == sessao["nome"])
@@ -73,7 +93,7 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     ft.Text(f"Chat: {sessao['nome']}", color="white", weight="bold", expand=True),
-                    ft.TextButton(content=ft.Text("Editar Perfil", color="white"), on_click=lambda _: desenhar_cadastro())
+                    ft.TextButton(content=ft.Text("Trocar Conta", color="white"), on_click=lambda _: desenhar_cadastro())
                 ]),
                 bgcolor="#008069", padding=15, border_radius=10
             ),
@@ -83,31 +103,27 @@ def main(page: ft.Page):
         carregar_historico()
 
     def finalizar_cadastro(e):
-        if input_nome.value:
+        if input_nome.value and input_email.value:
             sessao["nome"] = input_nome.value
-            sessao["email"] = input_email.value
-            # Força a gravação síncrona
-            page.client_storage.set("chat_nome", input_nome.value)
-            page.client_storage.set("chat_email", input_email.value)
+            sessao["email"] = input_email.value.lower()
+            
+            # SALVA NO BANCO DE DADOS DO SERVIDOR (Garante que não apague)
+            cursor = db_conn.cursor()
+            cursor.execute("INSERT OR REPLACE INTO usuarios (email, nome) VALUES (?, ?)", 
+                           (sessao["email"], sessao["nome"]))
+            db_conn.commit()
+            
             abrir_chat()
 
     def desenhar_cadastro():
         page.clean()
-        # Tenta recuperar o que estiver no storage
-        nome_memo = page.client_storage.get("chat_nome")
-        email_memo = page.client_storage.get("chat_email")
-        
-        if nome_memo:
-            input_nome.value = nome_memo
-        if email_memo:
-            input_email.value = email_memo
-            
         page.add(
             ft.Column([
                 ft.Text("🎮 Cadastro Gamers", size=30, weight="bold"),
+                ft.Text("O nome será lembrado pelo seu e-mail", size=12),
                 ft.Container(height=10),
-                input_nome,
                 input_email,
+                input_nome,
                 ft.Container(height=10),
                 ft.ElevatedButton("Entrar no Chat", on_click=finalizar_cadastro)
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
@@ -116,7 +132,5 @@ def main(page: ft.Page):
     desenhar_cadastro()
 
 if __name__ == "__main__":
-    # O segredo para o Render manter a sessão é não usar o flet_web diretamente se puder evitar
-    # mas aqui mantemos o padrão funcional para sua porta
     porta = int(os.environ.get("PORT", 8080))
     ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=porta, host="0.0.0.0")
