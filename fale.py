@@ -9,7 +9,7 @@ def init_db():
     # Tabela de mensagens
     cursor.execute('''CREATE TABLE IF NOT EXISTS mensagens 
                       (id INTEGER PRIMARY KEY AUTOINCREMENT, autor TEXT, texto TEXT)''')
-    # TABELA DE USUÁRIOS (Para não perder os dados no celular)
+    # Tabela de usuários para persistência no servidor
     cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios 
                       (email TEXT PRIMARY KEY, nome TEXT)''')
     conn.commit()
@@ -25,7 +25,6 @@ def main(page: ft.Page):
     sessao = {"nome": "", "email": ""}
     chat = ft.Column(expand=True, scroll=ft.ScrollMode.ALWAYS, spacing=10)
     
-    # Campos de entrada
     input_nome = ft.TextField(label="Nome", width=300)
     
     def buscar_usuario(e):
@@ -41,8 +40,8 @@ def main(page: ft.Page):
     input_email = ft.TextField(
         label="E-mail (Chave de Acesso)", 
         width=300, 
-        on_blur=buscar_usuario, # Busca quando clica fora do campo
-        on_change=buscar_usuario # Busca enquanto digita
+        on_blur=buscar_usuario,
+        on_change=buscar_usuario
     )
 
     def criar_balao(texto, autor):
@@ -107,12 +106,10 @@ def main(page: ft.Page):
             sessao["nome"] = input_nome.value
             sessao["email"] = input_email.value.lower()
             
-            # SALVA NO BANCO DE DADOS DO SERVIDOR (Garante que não apague)
             cursor = db_conn.cursor()
             cursor.execute("INSERT OR REPLACE INTO usuarios (email, nome) VALUES (?, ?)", 
                            (sessao["email"], sessao["nome"]))
             db_conn.commit()
-            
             abrir_chat()
 
     def desenhar_cadastro():
