@@ -16,12 +16,12 @@ db_conn = init_db()
 def main(page: ft.Page):
     page.title = "Chat Gamers"
     page.theme_mode = ft.ThemeMode.LIGHT
-    page.padding = 20
+    # Importante para PWA/Celular manter dados
+    page.browser_context_menu = True 
     
     sessao = {"nome": "", "email": ""}
     chat = ft.Column(expand=True, scroll=ft.ScrollMode.ALWAYS, spacing=10)
     
-    # Campos globais para fácil acesso
     input_nome = ft.TextField(label="Nome", width=300)
     input_email = ft.TextField(label="E-mail", width=300)
 
@@ -73,7 +73,7 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     ft.Text(f"Chat: {sessao['nome']}", color="white", weight="bold", expand=True),
-                    ft.TextButton(content=ft.Text("Trocar/Editar", color="white"), on_click=lambda _: desenhar_cadastro())
+                    ft.TextButton(content=ft.Text("Editar Perfil", color="white"), on_click=lambda _: desenhar_cadastro())
                 ]),
                 bgcolor="#008069", padding=15, border_radius=10
             ),
@@ -86,27 +86,22 @@ def main(page: ft.Page):
         if input_nome.value:
             sessao["nome"] = input_nome.value
             sessao["email"] = input_email.value
-            # Grava na memória para a próxima vez que abrir o app
-            try:
-                page.client_storage.set("chat_nome", input_nome.value)
-                page.client_storage.set("chat_email", input_email.value)
-            except:
-                pass
+            # Força a gravação síncrona
+            page.client_storage.set("chat_nome", input_nome.value)
+            page.client_storage.set("chat_email", input_email.value)
             abrir_chat()
 
     def desenhar_cadastro():
         page.clean()
-        # Carrega o que estiver na memória para os campos
-        try:
-            nome_memo = page.client_storage.get("chat_nome")
-            email_memo = page.client_storage.get("chat_email")
-            if nome_memo:
-                input_nome.value = nome_memo
-            if email_memo:
-                input_email.value = email_memo
-        except:
-            pass
-
+        # Tenta recuperar o que estiver no storage
+        nome_memo = page.client_storage.get("chat_nome")
+        email_memo = page.client_storage.get("chat_email")
+        
+        if nome_memo:
+            input_nome.value = nome_memo
+        if email_memo:
+            input_email.value = email_memo
+            
         page.add(
             ft.Column([
                 ft.Text("🎮 Cadastro Gamers", size=30, weight="bold"),
@@ -118,9 +113,10 @@ def main(page: ft.Page):
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         )
 
-    # SEMPRE inicia pela tela de cadastro (que já vem preenchida se houver dados)
     desenhar_cadastro()
 
 if __name__ == "__main__":
+    # O segredo para o Render manter a sessão é não usar o flet_web diretamente se puder evitar
+    # mas aqui mantemos o padrão funcional para sua porta
     porta = int(os.environ.get("PORT", 8080))
     ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=porta, host="0.0.0.0")
