@@ -2,7 +2,7 @@ import flet as ft
 import os
 import sqlite3
 
-# --- BANCO DE DADOS SIMPLES ---
+# --- BANCO DE DADOS ---
 def init_db():
     conn = sqlite3.connect("chat.db", check_same_thread=False)
     cursor = conn.cursor()
@@ -17,7 +17,6 @@ def main(page: ft.Page):
     page.title = "Chat Gamers"
     page.theme_mode = ft.ThemeMode.LIGHT
     
-    # Variável para o nome nesta sessão
     usuario = {"nome": ""}
     chat = ft.Column(expand=True, scroll=ft.ScrollMode.ALWAYS)
 
@@ -36,15 +35,15 @@ def main(page: ft.Page):
             txt_msg.value = ""
             page.update()
 
-    txt_msg = ft.TextField(label="Mensagem", expand=True, on_submit=enviar)
-    nome_input = ft.TextField(label="Teu Nome", width=200)
+    txt_msg = ft.TextField(label="Mensagem", expand=True)
+    nome_input = ft.TextField(label="Seu Nome", width=200)
 
     def entrar(e):
         if nome_input.value:
             usuario["nome"] = nome_input.value
             page.clean()
             page.add(
-                ft.Text(f"Ligado como: {usuario['nome']}", weight="bold"),
+                ft.Text(f"Logado como: {usuario['nome']}", weight="bold"),
                 chat,
                 ft.Row([txt_msg, ft.ElevatedButton("Enviar", on_click=enviar)])
             )
@@ -55,14 +54,14 @@ def main(page: ft.Page):
                 chat.controls.append(ft.Text(f"{row[0]}: {row[1]}"))
             page.update()
 
+    # TELA DE LOGIN SIMPLES (Sem o comando 'alignment' que deu erro)
     page.add(
-        ft.Column([
-            ft.Text("Entrar no Chat", size=25),
-            nome_input,
-            ft.ElevatedButton("Entrar", on_click=entrar)
-        ])
+        ft.Text("Entrar no Chat", size=25),
+        nome_input,
+        ft.ElevatedButton("Entrar", on_click=entrar)
     )
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 8080))
+    # Usando o formato mais simples para evitar avisos de 'Deprecation'
     ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=porta, host="0.0.0.0")
