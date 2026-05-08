@@ -69,12 +69,13 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     ft.Text(f"Chat: {sessao['nome']}", color="white", weight="bold", expand=True),
-                    ft.IconButton(icon=ft.icons.REFRESH, icon_color="white", on_click=lambda _: carregar_historico())
+                    # Trocado ícone REFRESH por texto para evitar erro de atributo
+                    ft.TextButton("Atualizar", on_click=lambda _: carregar_historico())
                 ]),
                 bgcolor="#008069", padding=15, border_radius=10
             ),
             chat,
-            ft.Container(content=ft.Row([txt_msg, ft.IconButton(icon=ft.icons.SEND, on_click=enviar)]), padding=10)
+            ft.Container(content=ft.Row([txt_msg, ft.IconButton(icon="SEND", on_click=enviar)]), padding=10)
         )
         carregar_historico()
 
@@ -89,19 +90,18 @@ def main(page: ft.Page):
         else:
             page.update()
 
-    # TELA DE CADASTRO SEM COMPONENTES QUE DÃO ERRO
     page.add(
         ft.Column([
             ft.Text("🎮 Cadastro Gamers", size=30, weight="bold"),
-            ft.Container(height=10), # Espaçador seguro
+            ft.Container(height=10),
             input_nome,
             input_email,
-            ft.Container(height=10), # Espaçador seguro
-            ft.ElevatedButton("Entrar no Chat", on_click=finalizar_cadastro)
+            ft.Container(height=10),
+            # Usando FilledButton para seguir a nova versão do Flet
+            ft.FilledButton("Entrar no Chat", on_click=finalizar_cadastro)
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     )
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 8080))
-    # Mudado de app() para run() para evitar o aviso de 'Deprecation' do seu log
     ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=porta, host="0.0.0.0")
