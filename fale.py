@@ -32,7 +32,6 @@ def main(page: ft.Page):
                     ], spacing=2, tight=True),
                     padding=12,
                     bgcolor="#005c4b" if sou_eu else "#333333",
-                    # CORREÇÃO: Usando valor numérico direto para evitar o erro de 'attribute all'
                     border_radius=15, 
                 )
             ],
@@ -62,12 +61,7 @@ def main(page: ft.Page):
             txt_msg.value = ""
             page.update()
 
-    txt_msg = ft.TextField(
-        hint_text="Mensagem...", 
-        expand=True, 
-        border_radius=20,
-        on_submit=enviar_msg
-    )
+    txt_msg = ft.TextField(hint_text="Mensagem...", expand=True, border_radius=20, on_submit=enviar_msg)
 
     def abrir_chat():
         page.clean()
@@ -75,23 +69,22 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     ft.Text(f"Chat: {sessao['nome']}", color="white", weight="bold", expand=True),
-                    ft.TextButton(
-                        content=ft.Text("Atualizar", color="white"), 
-                        on_click=lambda _: carregar_historico()
-                    )
+                    ft.TextButton(content=ft.Text("Sair", color="white"), on_click=lambda _: fazer_logout())
                 ]),
                 bgcolor="#008069", padding=15, border_radius=10
             ),
             chat,
-            ft.Container(
-                content=ft.Row([
-                    txt_msg, 
-                    ft.ElevatedButton("Enviar", on_click=enviar_msg)
-                ]), 
-                padding=10
-            )
+            ft.Container(content=ft.Row([txt_msg, ft.ElevatedButton("Enviar", on_click=enviar_msg)]), padding=10)
         )
         carregar_historico()
+
+    def fazer_logout():
+        try:
+            page.client_storage.clear()
+        except:
+            pass
+        page.clean()
+        desenhar_cadastro()
 
     input_nome = ft.TextField(label="Nome", width=300)
     input_email = ft.TextField(label="E-mail", width=300)
@@ -100,20 +93,37 @@ def main(page: ft.Page):
         if input_nome.value:
             sessao["nome"] = input_nome.value
             sessao["email"] = input_email.value
+            # Tenta salvar no celular
+            try:
+                page.client_storage.set("chat_nome", input_nome.value)
+                page.client_storage.set("chat_email", input_email.value)
+            except:
+                pass
+            abrir_chat()
+
+    def desenhar_cadastro():
+        page.add(
+            ft.Column([
+                ft.Text("🎮 Cadastro Gamers", size=30, weight="bold"),
+                ft.Container(height=10),
+                input_nome,
+                input_email,
+                ft.Container(height=10),
+                ft.ElevatedButton("Entrar no Chat", on_click=finalizar_cadastro)
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        )
+
+    # --- LÓGICA DE AUTO-LOGIN ---
+    try:
+        nome_salvo = page.client_storage.get("chat_nome")
+        if nome_salvo:
+            sessao["nome"] = nome_salvo
+            sessao["email"] = page.client_storage.get("chat_email")
             abrir_chat()
         else:
-            page.update()
-
-    page.add(
-        ft.Column([
-            ft.Text("🎮 Cadastro Gamers", size=30, weight="bold"),
-            ft.Container(height=10),
-            input_nome,
-            input_email,
-            ft.Container(height=10),
-            ft.ElevatedButton("Entrar no Chat", on_click=finalizar_cadastro)
-        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-    )
+            desenhar_cadastro()
+    except:
+        desenhar_cadastro()
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 8080))
