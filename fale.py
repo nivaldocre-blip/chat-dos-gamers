@@ -32,7 +32,8 @@ def main(page: ft.Page):
                     ], spacing=2, tight=True),
                     padding=12,
                     bgcolor="#005c4b" if sou_eu else "#333333",
-                    border_radius=ft.border_radius.all(15),
+                    # CORREÇÃO: Usando valor numérico direto para evitar o erro de 'attribute all'
+                    border_radius=15, 
                 )
             ],
             alignment=ft.MainAxisAlignment.END if sou_eu else ft.MainAxisAlignment.START
@@ -52,7 +53,6 @@ def main(page: ft.Page):
 
     page.pubsub.subscribe(on_message)
 
-    # Função de enviar separada para garantir que funcione no Enter e no Botão
     def enviar_msg(e):
         if txt_msg.value and sessao["nome"]:
             cursor = db_conn.cursor()
@@ -86,7 +86,6 @@ def main(page: ft.Page):
             ft.Container(
                 content=ft.Row([
                     txt_msg, 
-                    # Trocado IconButton por ElevatedButton para matar o erro de vez
                     ft.ElevatedButton("Enviar", on_click=enviar_msg)
                 ]), 
                 padding=10
