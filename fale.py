@@ -2,11 +2,11 @@ import flet as ft
 import os
 import sqlite3
 
-# --- BANCO DE DADOS ---
+# --- BANCO DE DADOS (Mensagens e Usuários) ---
 def init_db():
     conn = sqlite3.connect("chat.db", check_same_thread=False)
     cursor = conn.cursor()
-    # Adicionamos uma tabela para salvar os usuários também (opcional, para controle seu)
+    # Tabela de Mensagens
     cursor.execute('''CREATE TABLE IF NOT EXISTS mensagens 
                       (id INTEGER PRIMARY KEY AUTOINCREMENT, autor TEXT, texto TEXT)''')
     conn.commit()
@@ -19,14 +19,13 @@ def main(page: ft.Page):
     page.theme_mode = "light"
     page.auto_scroll = True
 
-    # --- FUNÇÃO PARA CARREGAR MENSAGENS ---
+    # Variável simples de Python para segurar o nome nesta sessão
+    sessao_usuario = {"nome": "", "email": ""}
+    
     chat = ft.Column(expand=True, scroll="always", spacing=10)
 
     def criar_balao(texto, autor):
-        # Busca o nome que está salvo no storage do celular agora
-        meu_nome = page.client_storage.get("user_name")
-        sou_eu = (autor == meu_nome)
-        
+        sou_eu = (autor == sessao_usuario["nome"])
         return ft.Row(
             controls=[
                 ft.Container(
@@ -63,24 +62,21 @@ def main(page: ft.Page):
     txt_msg = ft.TextField(hint_text="Mensagem...", expand=True, border_radius=20, on_submit=lambda _: enviar(None))
 
     def enviar(e):
-        nome_salvo = page.client_storage.get("user_name")
-        if txt_msg.value and nome_salvo:
+        if txt_msg.value and sessao_usuario["nome"]:
             cursor = db_conn.cursor()
-            cursor.execute("INSERT INTO mensagens (autor, texto) VALUES (?, ?)", (nome_salvo, txt_msg.value))
+            cursor.execute("INSERT INTO mensagens (autor, texto) VALUES (?, ?)", (sessao_usuario["nome"], txt_msg.value))
             db_conn.commit()
-            page.pubsub.send_all({"autor": nome_salvo, "texto": txt_msg.value})
+            page.pubsub.send_all({"autor": sessao_usuario["nome"], "texto": txt_msg.value})
             txt_msg.value = ""
             page.update()
 
-    # --- TELA DE CHAT ---
     def abrir_chat():
         page.clean()
-        nome = page.client_storage.get("user_name")
         page.add(
             ft.Container(
                 content=ft.Row([
-                    ft.Text(f"Logado como: {nome}", color="white", weight="bold", expand=True),
-                    ft.IconButton(icon=ft.icons.LOGOUT, icon_color="white", on_click=lambda _: fazer_logout())
+                    ft.Text(f"Chat: {sessao_usuario['nome']}", color="white", weight="bold", expand=True),
+                    ft.IconButton(icon=ft.icons.REFRESH, icon_color="white", on_click=lambda _: carregar_historico())
                 ]),
                 bgcolor="#008069", padding=10
             ),
@@ -89,41 +85,31 @@ def main(page: ft.Page):
         )
         carregar_historico()
 
-    def fazer_logout():
-        page.client_storage.clear()
-        page.window_destroy() # Ou apenas recarregar a página
-
-    # --- LÓGICA DE CADASTRO ---
     def salvar_cadastro(e):
         if input_nome.value and input_email.value:
-            # Salva no "disco rígido" do navegador/celular
-            page.client_storage.set("user_name", input_nome.value)
-            page.client_storage.set("user_email", input_email.value)
+            sessao_usuario["nome"] = input_nome.value
+            sessao_usuario["email"] = input_email.value
             abrir_chat()
         else:
-            page.snack_bar = ft.SnackBar(ft.Text("Preencha nome e email!"))
+            page.snack_bar = ft.SnackBar(ft.Text("Preencha tudo!"))
             page.snack_bar.open = True
             page.update()
 
     input_nome = ft.TextField(label="Nome", width=300)
     input_email = ft.TextField(label="E-mail", width=300)
 
-    # VERIFICAÇÃO INICIAL: Já tem cadastro?
-    if page.client_storage.contains_key("user_name"):
-        abrir_chat()
-    else:
-        page.add(
-            ft.Container(
-                content=ft.Column([
-                    ft.Text("Cadastro Gamers", size=30, weight="bold"),
-                    ft.Text("Entre uma vez para ficar salvo", size=14),
-                    input_nome,
-                    input_email,
-                    ft.ElevatedButton("Finalizar Cadastro", on_click=salvar_cadastro)
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                padding=50, alignment=ft.alignment.center
-            )
+    # Tela de Cadastro Inicial (Sem usar storage para evitar erros)
+    page.add(
+        ft.Container(
+            content=ft.Column([
+                ft.Text("Cadastro Gamers", size=30, weight="bold"),
+                input_nome,
+                input_email,
+                ft.ElevatedButton("Entrar no Chat", on_click=salvar_cadastro)
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            padding=50, alignment=ft.alignment.center
         )
+    )
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 8080))
